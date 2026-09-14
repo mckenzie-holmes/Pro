@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-card">
+  <p class="eyebrow">GRADE FORECAST</p>
+  <h1>Your target: {{ target }}%</h1>
+  {% if needed is none %}
+    <p>Enter a completed coursework percentage below 100%.</p>
+  {% elif needed > 100 %}
+    <p>You would need <strong>{{ needed }}%</strong> on the remaining coursework, so the target may not be mathematically reachable without extra credit.</p>
+  {% elif needed < 0 %}
+    <p>You have already mathematically secured your target based on these weights.</p>
+  {% else %}
+    <p>You need to average <strong>{{ needed }}%</strong> on the remaining coursework to finish with {{ target }}%.</p>
+  {% endif %}
+  <a class="button-link" href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+</div>
+{% endblock %}

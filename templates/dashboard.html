@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero">
+  <div><p class="eyebrow">ACADEMIC COMMAND CENTER</p><h1>Student Success Dashboard</h1><p>Turn assignments and grades into decisions you can act on.</p></div>
+</section>
+
+<section class="metrics">
+  <div class="metric"><span>Courses</span><strong>{{ course_cards|length }}</strong></div>
+  <div class="metric"><span>Overall Average</span><strong>{{ overall_avg if overall_avg is not none else '—' }}{% if overall_avg is not none %}%{% endif %}</strong></div>
+  <div class="metric"><span>Tasks Completed</span><strong>{{ completion_rate }}%</strong></div>
+</section>
+
+<div class="grid two">
+  <section class="panel">
+    <h2>Course Performance</h2>
+    <canvas id="gradeChart"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Grade Forecaster</h2>
+    <form action="{{ url_for('forecast') }}" method="post" class="stack">
+      <input type="number" step="0.1" name="current_grade" placeholder="Current grade %" required>
+      <input type="number" step="0.1" name="target_grade" placeholder="Target final grade %" required>
+      <input type="number" step="0.1" min="0" max="99.9" name="completed_weight" placeholder="Coursework completed %" required>
+      <button>Calculate Needed Grade</button>
+    </form>
+  </section>
+</div>
+
+<div class="grid two">
+  <section class="panel">
+    <h2>Add Course</h2>
+    <form action="{{ url_for('add_course') }}" method="post" class="stack">
+      <input name="name" placeholder="Course name" required>
+      <input name="code" placeholder="Course code (ex: COMP 163)">
+      <input type="number" step="0.1" name="target_grade" value="85" placeholder="Target grade">
+      <button>Add Course</button>
+    </form>
+  </section>
+  <section class="panel">
+    <h2>Add Assignment</h2>
+    {% if course_cards %}
+    <form action="{{ url_for('add_assignment') }}" method="post" class="stack">
+      <select name="course_id" required>
+        {% for item in course_cards %}<option value="{{ item.course.id }}">{{ item.course.code or item.course.name }}</option>{% endfor %}
+      </select>
+      <input name="title" placeholder="Assignment title" required>
+      <input type="date" name="due_date">
+      <div class="inline"><input type="number" step="0.1" name="score" placeholder="Score"><input type="number" step="0.1" name="max_score" value="100" placeholder="Max"></div>
+      <input type="number" step="0.1" name="weight" value="1" placeholder="Relative weight">
+      <label class="check"><input type="checkbox" name="completed"> Completed</label>
+      <button>Add Assignment</button>
+    </form>
+    {% else %}<p>Add a course first.</p>{% endif %}
+  </section>
+</div>
+
+<section class="course-list">
+{% for item in course_cards %}
+  <article class="panel course-card">
+    <div class="course-head">
+      <div><p class="eyebrow">{{ item.course.code or 'COURSE' }}</p><h2>{{ item.course.name }}</h2></div>
+      <div class="grade-pill {% if item.average is not none and item.average < 70 %}danger{% endif %}">{{ item.average if item.average is not none else 'No grades' }}{% if item.average is not none %}%{% endif %}</div>
+    </div>
+    {% if item.assignments %}
+      <div class="assignment-list">
+      {% for a in item.assignments %}
+        <div class="assignment {% if a.completed %}done{% endif %}">
+          <div><strong>{{ a.title }}</strong><small>{{ a.due_date or 'No due date' }}</small></div>
+          <div class="assignment-actions">
+            <span>{% if a.score is not none %}{{ a.score }}/{{ a.max_score }}{% else %}Ungraded{% endif %}</span>
+            <form action="{{ url_for('toggle_assignment', assignment_id=a.id) }}" method="post"><button class="small">{% if a.completed %}Undo{% else %}Done{% endif %}</button></form>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}<p>No assignments yet.</p>{% endif %}
+  </article>
+{% endfor %}
+</section>
+
+<script>
+const ctx = document.getElementById('gradeChart');
+new Chart(ctx, {
+  type: 'bar',
+  data: { labels: {{ chart_labels|tojson }}, datasets: [{ label: 'Current Average', data: {{ chart_values|tojson }} }] },
+  options: { scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}
